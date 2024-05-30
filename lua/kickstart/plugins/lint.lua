@@ -7,6 +7,10 @@ return {
       local lint = require 'lint'
       lint.linters_by_ft = {
         markdown = { 'markdownlint' },
+        dockerfile = { 'hadolint' },
+        text = { 'vale' },
+        python = { 'pylint', 'mypy' },
+        json = { 'jsonlint' },
       }
 
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
@@ -18,15 +22,12 @@ return {
       -- which will cause errors unless these tools are available:
       -- {
       --   clojure = { "clj-kondo" },
-      --   dockerfile = { "hadolint" },
+      --   markdown = { "vale" },
       --   inko = { "inko" },
       --   janet = { "janet" },
-      --   json = { "jsonlint" },
-      --   markdown = { "vale" },
       --   rst = { "vale" },
       --   ruby = { "ruby" },
       --   terraform = { "tflint" },
-      --   text = { "vale" }
       -- }
       --
       -- You can disable the default linters by setting their filetypes to nil:
