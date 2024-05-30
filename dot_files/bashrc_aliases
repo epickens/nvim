@@ -1,0 +1,88 @@
+
+# custom alias
+alias l="eza -l --icons --git -a"
+alias lt="eza --tree --level=2 --long --icons --git"
+alias d="eza --tree --level=2 --long --icons --git -D"
+alias h="history"
+alias c="clear"
+alias e="exit"
+alias v="nvim"
+alias p="python"
+alias p3="python3"
+alias g="git"
+alias m="make"
+
+# quick head and tail
+tail_5() {
+	if [ -z "$1" ]; then
+		echo "Usage: tail_5 <file>"
+	else
+		command tail -n 5 "$1"
+	fi
+}
+
+head_5() {
+    if [ -z "$1" ]; then
+		echo "Usage: head_5 <file>"
+    else
+		command head -n 5 "$1"
+    fi
+}
+
+alias h5="head_5"
+alias t5="tail_5"
+
+# conda and pip commands
+pip_install() {
+	if [ -z "$1" ]; then
+		echo "Usage: pip_install <package>"
+	else
+		pip install "$1"
+	fi
+}
+
+conda_install() {
+	if [ -z "$1" ]; then
+		echo "Usage: conda_install <package>"
+	else
+		conda install "$1"
+	fi
+}
+
+alias pi="pip_install"
+alias ci="conda_install"
+
+conda_activate() {
+	if [ -z "$1" ]; then
+		echo "Usage: conda_activate <environment>"
+	else
+		conda activate "$1"
+	fi
+}
+
+alias ca="conda_activate"
+alias ce="conda deactivate"
+
+
+# git commands
+git_add() {
+	if [ -z "$1" ]; then
+		echo "Usage: git_add <file>"
+	else
+		git add "$1"
+	fi
+}
+
+git_commit() {
+	if [ -z "$1" ]; then
+		echo "Usage: git_commit <message>"
+	else
+		git commit -m "$1"
+	fi
+}
+
+alias gss="git status"
+alias gaa="git_add"
+alias gcm="git_commit"
+alias gpp="git push"
+
