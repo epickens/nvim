@@ -1,8 +1,9 @@
 
 # custom alias
 alias l="eza -l --icons --git -a"
-alias lt="eza --tree --level=2 --long --icons --git"
+alias lt="eza --tree --level=2 --long --icons --git -a"
 alias d="eza --tree --level=2 --long --icons --git -D"
+alias da="eza --tree --level=2 --long --icons --git -D -a"
 alias h="history"
 alias c="clear"
 alias e="exit"

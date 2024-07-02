@@ -30,3 +30,8 @@ vim.keymap.set('n', '<leader>-', ':split <Enter>')
 -- copilot remaps
 vim.keymap.set('n', '<leader>coe', ':Copilot enable<cr>')
 vim.keymap.set('n', '<leader>cod', ':Copilot disable<cr>')
+
+-- move to the end of the line
+vim.keymap.set('n', 'gE', '^')
+-- move to the beginning of the line
+vim.keymap.set('n', 'gF', '$')
