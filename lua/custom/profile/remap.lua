@@ -32,6 +32,12 @@ vim.keymap.set('n', '<leader>coe', ':Copilot enable<cr>')
 vim.keymap.set('n', '<leader>cod', ':Copilot disable<cr>')
 
 -- move to the end of the line
-vim.keymap.set('n', 'gE', '^')
+vim.keymap.set('n', 'gE', '$')
 -- move to the beginning of the line
-vim.keymap.set('n', 'gF', '$')
+vim.keymap.set('n', 'gF', '^')
+
+-- pipe (|>) operator shortcut for R programming used in dplyr (tidyverse)
+vim.keymap.set('i', '<leader>po', ' |> <Enter>')
+
+-- copy over ssh
+vim.keymap.set('v', '<leader>cc', '"+y', { desc = 'Copy to system clipboard' })

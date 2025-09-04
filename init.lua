@@ -118,6 +118,20 @@ vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
 end)
 
+-- shh copy and paste
+vim.g.clipboard = {
+  name = 'OSC 52',
+  copy = {
+    ['+'] = require('vim.ui.clipboard.osc52').copy '+',
+    ['*'] = require('vim.ui.clipboard.osc52').copy '*',
+  },
+  --   paste = nil,
+  paste = {
+    ['+'] = require('vim.ui.clipboard.osc52').paste '+',
+    ['*'] = require('vim.ui.clipboard.osc52').paste '*',
+  },
+}
+
 -- Enable break indent
 vim.o.breakindent = true
 
@@ -676,8 +690,8 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        pyright = {},
-        julials = {},
+        pyright = { filetypes = { 'py', 'py3' } },
+        julials = { filetypes = { 'jl' } },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -686,9 +700,11 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         ts_ls = {},
+        ocamllsp = { filetypes = { 'ml' } },
+        r_language_server = { filetypes = { 'r', 'rmd', 'quatro' } },
         --
         html = { filetypes = { 'html', 'twig', 'hbs' } },
-        jsonls = {},
+        jsonls = { filetypes = { 'json', 'jsonc' } },
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
