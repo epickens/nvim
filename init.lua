@@ -114,21 +114,26 @@ vim.o.showmode = false
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
-vim.schedule(function()
-  vim.o.clipboard = 'unnamedplus'
-end)
+-- vim.schedule(function()
+--   vim.o.clipboard = 'unnamedplus'
+-- end)
+
+vim.o.clipboard = 'unnamedplus'
+
+-- Use OSC52 for clipboard
+local osc52 = require 'vim.ui.clipboard.osc52'
 
 -- shh copy and paste
 vim.g.clipboard = {
-  name = 'OSC 52',
+  name = 'osc52',
   copy = {
-    ['+'] = require('vim.ui.clipboard.osc52').copy '+',
-    ['*'] = require('vim.ui.clipboard.osc52').copy '*',
+    ['+'] = osc52.copy '+',
+    ['*'] = osc52.copy '*',
   },
   --   paste = nil,
   paste = {
-    ['+'] = require('vim.ui.clipboard.osc52').paste '+',
-    ['*'] = require('vim.ui.clipboard.osc52').paste '*',
+    ['+'] = osc52.paste '+',
+    ['*'] = osc52.paste '*',
   },
 }
 
@@ -232,7 +237,11 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.hl.on_yank()
+    if vim.hl then
+      vim.hl.on_yank()
+    else
+      vim.highlight.on_yank()
+    end
   end,
 })
 
@@ -690,8 +699,10 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        pyright = { filetypes = { 'py', 'py3' } },
-        julials = { filetypes = { 'jl' } },
+        --  filetypes = { 'py', 'py3' }
+        -- filetypes = { 'jl' }
+        pyright = {},
+        julials = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -699,12 +710,15 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        ts_ls = {},
-        ocamllsp = { filetypes = { 'ml' } },
-        r_language_server = { filetypes = { 'r', 'rmd', 'quatro' } },
-        --
-        html = { filetypes = { 'html', 'twig', 'hbs' } },
-        jsonls = { filetypes = { 'json', 'jsonc' } },
+        -- ts_ls = {},
+        -- filetypes = { 'ml' }
+        ocamllsp = {},
+        --  filetypes = { 'r', 'rmd', 'quatro' }
+        r_language_server = {},
+        --  filetypes = { 'html', 'twig', 'hbs' }
+        html = {},
+        --  filetypes = { 'json', 'jsonc' }
+        jsonls = {},
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
