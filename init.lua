@@ -703,6 +703,7 @@ require('lazy').setup({
         -- filetypes = { 'jl' }
         pyright = {},
         julials = {},
+        texlab = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -1000,7 +1001,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'latex', 'bibtex' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1018,6 +1019,34 @@ require('lazy').setup({
     --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+  },
+  -- LaTeX support
+  {
+    'lervag/vimtex',
+    lazy = false,
+    init = function()
+      -- PDF viewer configuration
+      vim.g.vimtex_view_method = 'zathura' -- Change to your preferred PDF viewer
+
+      -- Compiler configuration
+      vim.g.vimtex_compiler_method = 'latexmk'
+      vim.g.vimtex_compiler_latexmk = {
+        build_dir = '',
+        callback = 1,
+        continuous = 1,
+        executable = 'latexmk',
+        hooks = {},
+        options = {
+          '-verbose',
+          '-file-line-error',
+          '-synctex=1',
+          '-interaction=nonstopmode',
+        },
+      }
+
+      -- Set local leader for VimTeX mappings
+      -- vim.g.maplocalleader = ' '
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
