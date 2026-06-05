@@ -123,17 +123,17 @@ vim.o.clipboard = 'unnamedplus'
 -- Use OSC52 for clipboard
 local osc52 = require 'vim.ui.clipboard.osc52'
 
--- shh copy and paste
+-- OSC52 for copy (works over SSH), but NOT for paste (causes freezes).
+-- For pasting, fall back to tmux/terminal native paste (ctrl-shift-v or tmux paste).
 vim.g.clipboard = {
   name = 'osc52',
   copy = {
     ['+'] = osc52.copy '+',
     ['*'] = osc52.copy '*',
   },
-  --   paste = nil,
   paste = {
-    ['+'] = osc52.paste '+',
-    ['*'] = osc52.paste '*',
+    ['+'] = nil,
+    ['*'] = nil,
   },
 }
 
@@ -1023,7 +1023,7 @@ require('lazy').setup({
   -- LaTeX support
   {
     'lervag/vimtex',
-    lazy = false,
+    ft = { 'tex', 'plaintex', 'bib' },
     init = function()
       -- PDF viewer configuration
       vim.g.vimtex_view_method = 'zathura' -- Change to your preferred PDF viewer
