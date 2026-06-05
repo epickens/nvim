@@ -99,7 +99,7 @@ do
   vim.g.maplocalleader = ' '
 
   -- Set to true if you have a Nerd Font installed and selected in the terminal
-  vim.g.have_nerd_font = false
+  vim.g.have_nerd_font = true
 
   -- [[ Setting options ]]
   --  See `:help vim.o`
@@ -118,11 +118,26 @@ do
   -- Don't show the mode, since it's already in the status line
   vim.o.showmode = false
 
-  -- Sync clipboard between OS and Neovim.
-  --  Schedule the setting after `UiEnter` because it can increase startup-time.
-  --  Remove this option if you want your OS clipboard to remain independent.
-  --  See `:help 'clipboard'`
-  vim.schedule(function() vim.o.clipboard = 'unnamedplus' end)
+  -- Keep normal yanks local. Use explicit + register mappings to copy outward.
+  -- This avoids trying to read the local clipboard from remote SSH/tmux sessions.
+  vim.o.clipboard = ''
+
+  -- OSC52 copy works well over SSH/tmux. Paste through terminal/tmux paste instead.
+  local osc52 = require 'vim.ui.clipboard.osc52'
+  local function no_clipboard_paste()
+    return { {}, 'v' }
+  end
+  vim.g.clipboard = {
+    name = 'OSC52 copy-only',
+    copy = {
+      ['+'] = osc52.copy '+',
+      ['*'] = osc52.copy '*',
+    },
+    paste = {
+      ['+'] = no_clipboard_paste,
+      ['*'] = no_clipboard_paste,
+    },
+  }
 
   -- Enable break indent
   vim.o.breakindent = true
@@ -171,6 +186,10 @@ do
   -- instead raise a dialog asking if you wish to save the current file(s)
   -- See `:help 'confirm'`
   vim.o.confirm = true
+
+  -- Custom keymaps and filetype preferences
+  require 'custom.profile.remap'
+  require 'custom.profile.filetype'
 
   -- [[ Basic Keymaps ]]
   --  See `:help vim.keymap.set()`
@@ -378,23 +397,9 @@ do
   }
 
   -- [[ Colorscheme ]]
-  -- You can easily change to a different colorscheme.
-  -- Change the name of the colorscheme plugin below, and then
-  -- change the command under that to load whatever the name of that colorscheme is.
-  --
-  -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  vim.pack.add { gh 'folke/tokyonight.nvim' }
-  ---@diagnostic disable-next-line: missing-fields
-  require('tokyonight').setup {
-    styles = {
-      comments = { italic = false }, -- Disable italics in comments
-    },
-  }
-
-  -- Load the colorscheme here.
-  -- Like many other themes, this one has different styles, and you could load
-  -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  vim.pack.add { gh 'rebelot/kanagawa.nvim' }
+  vim.cmd.colorscheme 'kanagawa-wave'
+  vim.cmd.hi 'Comment gui=none'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -686,18 +691,41 @@ do
   --  See `:help lsp-config` for information about keys and how to configure
   ---@type table<string, vim.lsp.Config>
   local servers = {
-    -- clangd = {},
-    -- gopls = {},
-    -- pyright = {},
-    -- rust_analyzer = {},
-    --
-    -- Some languages (like typescript) have entire language plugins that can be useful:
-    --    https://github.com/pmizio/typescript-tools.nvim
-    --
-    -- But for many setups, the LSP (`ts_ls`) will work just fine
-    -- ts_ls = {},
+    -- Python: Ruff handles linting/fixes/formatting; Pyright handles type-aware navigation/completion.
+    pyright = {
+      settings = {
+        pyright = {
+          disableOrganizeImports = true,
+        },
+        python = {
+          analysis = {
+            autoImportCompletions = true,
+            autoSearchPaths = true,
+            diagnosticMode = 'workspace',
+            useLibraryCodeForTypes = true,
+          },
+        },
+      },
+    },
+    ruff = {
+      on_attach = function(client)
+        -- Let Pyright own hover text; Ruff owns diagnostics, fixes, and import actions.
+        client.server_capabilities.hoverProvider = false
+      end,
+    },
 
-    stylua = {}, -- Used to format Lua code
+    -- Writing / data formats
+    texlab = {},
+    marksman = {},
+    html = {},
+    jsonls = {},
+    taplo = {},
+
+    -- Other languages you had before or are likely using in this config.
+    bashls = {},
+    julials = {},
+    ocamllsp = {},
+    r_language_server = {},
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -734,6 +762,7 @@ do
     },
   }
 
+
   vim.pack.add {
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
@@ -753,7 +782,11 @@ do
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
+    'stylua',
+    'ruff',
+    'prettierd',
+    'prettier',
+    'latexindent',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -774,30 +807,55 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
+        lua = true,
+        python = true,
+        javascript = true,
+        typescript = true,
+        javascriptreact = true,
+        typescriptreact = true,
+        svelte = true,
+        css = true,
+        html = true,
+        json = true,
+        jsonc = true,
+        yaml = true,
+        markdown = true,
+        graphql = true,
+        toml = true,
       }
+
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
-      else
-        return nil
+        return { timeout_ms = 1000, lsp_format = 'fallback' }
       end
+      return nil
     end,
     default_format_opts = {
-      lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
+      lsp_format = 'fallback',
     },
-    -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
-      -- Conform can also run multiple formatters sequentially
-      -- python = { "isort", "black" },
-      --
-      -- You can use 'stop_after_first' to run the first available formatter from the list
-      -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      lua = { 'stylua' },
+      python = { 'ruff_organize_imports', 'ruff_format' },
+      javascript = { { 'prettierd', 'prettier' } },
+      typescript = { { 'prettierd', 'prettier' } },
+      javascriptreact = { { 'prettierd', 'prettier' } },
+      typescriptreact = { { 'prettierd', 'prettier' } },
+      svelte = { { 'prettierd', 'prettier' } },
+      css = { { 'prettierd', 'prettier' } },
+      html = { { 'prettierd', 'prettier' } },
+      json = { { 'prettierd', 'prettier' } },
+      jsonc = { { 'prettierd', 'prettier' } },
+      yaml = { { 'prettierd', 'prettier' } },
+      markdown = { { 'prettierd', 'prettier' } },
+      graphql = { { 'prettierd', 'prettier' } },
+      toml = { 'taplo' },
+      tex = { 'latexindent' },
+      plaintex = { 'latexindent' },
+      bib = { 'latexindent' },
+      stan = { { 'prettierd', 'prettier' } },
     },
   }
+
 
   vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
 end
@@ -898,7 +956,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  local parsers = { 'bash', 'bibtex', 'c', 'diff', 'html', 'json', 'julia', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'ocaml', 'python', 'query', 'r', 'toml', 'vim', 'vimdoc', 'yaml' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -961,16 +1019,17 @@ do
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug'
-  -- require 'kickstart.plugins.indent_line'
+  require 'kickstart.plugins.indent_line'
+  -- Ruff LSP covers Python linting; enable this if you add markdownlint or other external linters.
   -- require 'kickstart.plugins.lint'
-  -- require 'kickstart.plugins.autopairs'
+  require 'kickstart.plugins.autopairs'
   -- require 'kickstart.plugins.neo-tree'
   -- require 'kickstart.plugins.gitsigns' -- adds gitsigns recommended keymaps
 
   -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- require 'custom.plugins'
+  require 'custom.plugins'
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
