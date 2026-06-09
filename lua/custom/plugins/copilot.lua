@@ -1,6 +1,7 @@
 vim.pack.add { 'https://github.com/zbirenbaum/copilot.lua' }
 
 require('copilot').setup {
+  copilot_node_command = vim.fn.expand '$HOME/.nvm/versions/node/v22.22.3/bin/node',
   panel = {
     enabled = false,
     auto_refresh = false,

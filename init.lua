@@ -188,6 +188,7 @@ do
   vim.o.confirm = true
 
   -- Custom keymaps and filetype preferences
+  require 'custom.profile.bigfile'
   require 'custom.profile.remap'
   require 'custom.profile.filetype'
 
@@ -635,6 +636,12 @@ do
         vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
       end
 
+      local client = vim.lsp.get_client_by_id(event.data.client_id)
+      if vim.b[event.buf].skip_lsp then
+        if client then vim.schedule(function() vim.lsp.buf_detach_client(event.buf, client.id) end) end
+        return
+      end
+
       -- Rename the variable under your cursor.
       --  Most Language Servers support renaming across files, etc.
       map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
@@ -652,7 +659,6 @@ do
       --    See `:help CursorHold` for information about when this is executed
       --
       -- When you move your cursor, the highlights will be cleared (the second autocommand).
-      local client = vim.lsp.get_client_by_id(event.data.client_id)
       if client and client:supports_method('textDocument/documentHighlight', event.buf) then
         local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
         vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
@@ -689,10 +695,17 @@ do
   -- Enable the following language servers
   --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
   --  See `:help lsp-config` for information about keys and how to configure
+  local python_env = require 'custom.profile.python'
+
   ---@type table<string, vim.lsp.Config>
   local servers = {
     -- Python: Ruff handles linting/fixes/formatting; Pyright handles type-aware navigation/completion.
     pyright = {
+      before_init = function(_, config)
+        config.settings = config.settings or {}
+        config.settings.python = config.settings.python or {}
+        config.settings.python.pythonPath = python_env.python_path(config.root_dir)
+      end,
       settings = {
         pyright = {
           disableOrganizeImports = true,
@@ -714,7 +727,20 @@ do
       end,
     },
 
+    -- C/C++/CUDA: clangd works best when the project has compile_commands.json.
+    clangd = {
+      cmd = {
+        'clangd',
+        '--background-index',
+        '--clang-tidy',
+        '--completion-style=detailed',
+        '--header-insertion=iwyu',
+      },
+      filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' },
+    },
+
     -- Writing / data formats
+    cmake = {},
     texlab = {},
     marksman = {},
     html = {},
@@ -784,6 +810,13 @@ do
   vim.list_extend(ensure_installed, {
     'stylua',
     'ruff',
+    'debugpy',
+    'clang-format',
+    'codelldb',
+    'cmakelang',
+    'cmake-language-server',
+    'shfmt',
+    'shellcheck',
     'prettierd',
     'prettier',
     'latexindent',
@@ -807,6 +840,8 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
+      if vim.b[bufnr].skip_format_on_save then return nil end
+
       local enabled_filetypes = {
         lua = true,
         python = true,
@@ -823,6 +858,16 @@ do
         markdown = true,
         graphql = true,
         toml = true,
+        c = true,
+        cpp = true,
+        cuda = true,
+        cmake = true,
+        sh = true,
+        bash = true,
+        zsh = true,
+        tex = true,
+        plaintex = true,
+        bib = true,
       }
 
       if enabled_filetypes[vim.bo[bufnr].filetype] then
@@ -849,6 +894,13 @@ do
       markdown = { { 'prettierd', 'prettier' } },
       graphql = { { 'prettierd', 'prettier' } },
       toml = { 'taplo' },
+      c = { 'clang_format' },
+      cpp = { 'clang_format' },
+      cuda = { 'clang_format' },
+      cmake = { 'cmake_format' },
+      sh = { 'shfmt' },
+      bash = { 'shfmt' },
+      zsh = { 'shfmt' },
       tex = { 'latexindent' },
       plaintex = { 'latexindent' },
       bib = { 'latexindent' },
@@ -869,15 +921,13 @@ do
 
   -- NOTE: You can also specify plugin using a version range for its git tag.
   --  See `:help vim.version.range()` for more info
-  vim.pack.add { { src = gh 'L3MON4D3/LuaSnip', version = vim.version.range '2.*' } }
+  vim.pack.add {
+    { src = gh 'L3MON4D3/LuaSnip', version = vim.version.range '2.*' },
+    gh 'rafamadriz/friendly-snippets',
+  }
   require('luasnip').setup {}
-
-  -- `friendly-snippets` contains a variety of premade snippets.
-  --    See the README about individual language/framework/plugin snippets:
-  --    https://github.com/rafamadriz/friendly-snippets
-  --
-  -- vim.pack.add { gh 'rafamadriz/friendly-snippets' }
-  -- require('luasnip.loaders.from_vscode').lazy_load()
+  require('luasnip.loaders.from_vscode').lazy_load()
+  require('luasnip.loaders.from_lua').lazy_load { paths = vim.fs.joinpath(vim.fn.stdpath 'config', 'lua', 'custom', 'snippets') }
 
   -- [[ Autocomplete Engine ]]
   vim.pack.add { { src = gh 'saghen/blink.cmp', version = vim.version.range '1.*' } }
@@ -956,7 +1006,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'bibtex', 'c', 'diff', 'html', 'json', 'julia', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'ocaml', 'python', 'query', 'r', 'toml', 'vim', 'vimdoc', 'yaml' }
+  local parsers = { 'bash', 'bibtex', 'c', 'cmake', 'cpp', 'cuda', 'diff', 'html', 'json', 'julia', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'ocaml', 'python', 'query', 'r', 'toml', 'vim', 'vimdoc', 'yaml' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -984,6 +1034,7 @@ do
   vim.api.nvim_create_autocmd('FileType', {
     callback = function(args)
       local buf, filetype = args.buf, args.match
+      if vim.b[buf].skip_treesitter then return end
 
       local language = vim.treesitter.language.get_lang(filetype)
       if not language then return end
